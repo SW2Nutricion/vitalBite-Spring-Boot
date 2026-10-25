@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+*.iml
+
+# Maven
+target/
+.m2/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Node (si hay)
+node_modules/
+npm-debug.log
+
+# Varios
+.env
+.env.local
+*.md
+uploads/
