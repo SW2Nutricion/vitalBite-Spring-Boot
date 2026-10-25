@@ -1,4 +1,4 @@
-package com.vitalbite.documental.controller;
+package com.vitalbite.documental.infrastructure.in.web;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;

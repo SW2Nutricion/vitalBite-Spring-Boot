@@ -1,4 +1,4 @@
-package com.vitalbite.documental.documents.service;
+package com.vitalbite.documental.infrastructure.out.pdf;
 
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -13,9 +13,9 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
-import com.vitalbite.documental.documents.dto.DietPdfRequestDTO;
-import com.vitalbite.documental.documents.dto.InvoicePdfRequestDTO;
-import org.springframework.stereotype.Service;
+import com.vitalbite.documental.application.dto.DietPdfRequestDTO;
+import com.vitalbite.documental.application.dto.InvoicePdfRequestDTO;
+import com.vitalbite.documental.application.port.out.PdfGeneratorPort;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
@@ -23,8 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Service
-public class PdfGeneratorService {
+public class PdfGeneratorAdapter implements PdfGeneratorPort {
 
     private static final DeviceRgb COLOR_PRIMARY =
             new DeviceRgb(34, 139, 87);
@@ -46,6 +45,7 @@ public class PdfGeneratorService {
                     "Almuerzo", "Merienda", "Cena"
             );
 
+    @Override
     public byte[] generateDietPdf(DietPdfRequestDTO request) {
 
         ByteArrayOutputStream outputStream =
@@ -311,6 +311,7 @@ public class PdfGeneratorService {
         return val == null ? "" : val;
     }
 
+    @Override
     public byte[] generateInvoicePdf(InvoicePdfRequestDTO request) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PdfWriter writer = new PdfWriter(outputStream);

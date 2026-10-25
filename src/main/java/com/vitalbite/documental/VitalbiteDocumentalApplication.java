@@ -1,6 +1,6 @@
 package com.vitalbite.documental;
 
-import com.vitalbite.documental.config.DotenvConfig;
+import com.vitalbite.documental.infrastructure.config.DotenvConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

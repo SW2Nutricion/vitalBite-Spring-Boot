@@ -1,4 +1,4 @@
-package com.vitalbite.documental.documents.dto;
+package com.vitalbite.documental.application.dto;
 
 import lombok.Data;
 import lombok.Builder;
