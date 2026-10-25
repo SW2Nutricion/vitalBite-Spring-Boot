@@ -1,103 +1,62 @@
 # VitalBite Spring Boot
 
-Microservicio documental de VitalBite. Se encarga de generar PDFs, guardar
-metadatos en PostgreSQL/Supabase y subir documentos a AWS S3.
+Microservicio documental de VitalBite. Genera documentos PDF mediante una
+arquitectura hexagonal, separando dominio, aplicación e infraestructura.
+
+La persistencia de metadatos y archivos está deliberadamente pendiente: aún no
+se ha definido qué base de datos utilizar. Por eso el proyecto no incluye
+drivers, configuración ni migraciones de base de datos.
 
 ## Requisitos
 
-- Java 21
-- Maven Wrapper incluido en el proyecto (`mvnw.cmd` en Windows)
-- PostgreSQL/Supabase configurado
-- Credenciales de AWS S3
+- Java 17
+- Maven Wrapper incluido (`mvnw.cmd` en Windows)
 
-## Configuracion
-
-1. Entra al proyecto:
-
-   ```powershell
-   cd C:\Proyectos\SW2_VitalBite\vitalBite-Spring-Boot
-   ```
-
-2. Crea el archivo `.env` desde el ejemplo si todavia no existe:
-
-   ```powershell
-   copy .env-example .env
-   ```
-
-3. Completa las variables del `.env`:
-
-   ```env
-   DB_URL=jdbc:postgresql://db.tuproyecto.supabase.co:5432/postgres
-   DB_USERNAME=postgres
-   DB_PASSWORD=tu_password
-
-   AWS_BUCKET_NAME=vitalbite-documentos
-   AWS_REGION=us-east-1
-   AWS_ACCESS_KEY=tu_access_key
-   AWS_SECRET_KEY=tu_secret_key
-
-   JWT_SECRET=una_clave_secreta_muy_larga_y_segura_minimo_32_caracteres
-   ```
-
-El proyecto carga estas variables automaticamente usando `dotenv-java`.
-
-## Instalacion de dependencias
-
-En Windows:
+## Instalación y ejecución
 
 ```powershell
 .\mvnw.cmd clean install
-```
-
-En Linux/Mac:
-
-```bash
-./mvnw clean install
-```
-
-## Ejecucion
-
-En Windows:
-
-```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-En Linux/Mac:
+El backend se levanta en `http://localhost:8082/api/v1`.
 
-```bash
-./mvnw spring-boot:run
-```
-
-El backend se levanta en:
-
-```text
-http://localhost:8082/api/v1
-```
-
-## URLs utiles
+## URLs útiles
 
 - Swagger UI: `http://localhost:8082/api/v1/swagger-ui/index.html`
-- Health documental: `http://localhost:8082/api/v1/documents/health`
+- Documentación OpenAPI: `http://localhost:8082/api/v1/v3/api-docs`
 - Actuator health: `http://localhost:8082/api/v1/actuator/health`
 
-## Endpoints principales
+## Endpoints
 
-| Metodo | Endpoint | Descripcion |
+| Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `POST` | `/api/v1/documents/pdf/diet` | Genera un PDF de dieta, lo sube a S3 y devuelve la URL prefirmada |
-| `POST` | `/api/v1/documents/pdf/diet/preview` | Genera una vista previa del PDF sin guardar en base de datos |
-| `GET` | `/api/v1/documents/health` | Verifica que el modulo documental este activo |
+| `POST` | `/api/v1/documents/pdf/diet` | Genera y devuelve un PDF de dieta |
+| `POST` | `/api/v1/documents/pdf/diet/preview` | Genera una vista previa de dieta |
+| `POST` | `/api/v1/documents/pdf/invoice` | Genera y devuelve un PDF de factura |
+
+Los PDFs se devuelven directamente en la respuesta y no se almacenan todavía.
+Los endpoints de consulta, descarga y metadatos se implementarán cuando se
+seleccione la tecnología de persistencia.
+
+## Núcleo documental en avance
+
+Mientras se define la base de datos, el endpoint `POST /api/v1/documentos`
+permite probar el contrato documental usando un repositorio en memoria:
+
+- Requiere `Idempotency-Key`.
+- Valida ACL y estados `PENDIENTE`, `GENERADO`, `FALLIDO` y `ANULADO`.
+- Genera PDF o CSV a partir de los datos recibidos, sin consultar otros servicios.
+- Separa `Datos registrados` de `Interpretación generada por IA`.
+- Exige metadatos de IA cuando se envía una interpretación.
+- `GET /api/v1/documentos/{id}` devuelve metadatos y `ETag`.
+- `POST /api/v1/documentos/{id}/anular` implementa la compensación idempotente.
+
+La implementación temporal en memoria se reemplazará por los puertos de
+persistencia cuando el equipo seleccione la tecnología de base de datos.
 
 ## Pruebas
 
 ```powershell
 .\mvnw.cmd test
 ```
-
-## Notas
-
-- El puerto configurado es `8082`.
-- El contexto base configurado es `/api/v1`.
-- Hibernate esta configurado con `spring.jpa.hibernate.ddl-auto=update`.
-- No subas el archivo `.env` al repositorio porque contiene credenciales.
