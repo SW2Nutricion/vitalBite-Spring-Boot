@@ -11,24 +11,35 @@ import com.vitalbite.documental.domain.model.AclDocumento;
 import com.vitalbite.documental.domain.model.Documento;
 import com.vitalbite.documental.domain.model.MetadatosIA;
 
-import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.vitalbite.documental.application.port.out.IdempotenciaPort;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class SolicitarDocumentoUseCase {
 
     private final DocumentoRepositoryPort repository;
     private final GeneradorDocumentoPort generator;
+    private final IdempotenciaPort idempotencia;
+    private final ObjectMapper objectMapper;
     private final long maxFileBytes;
-    private final Map<String, ResultadoIdempotente> idempotency = new ConcurrentHashMap<>();
 
     public SolicitarDocumentoUseCase(DocumentoRepositoryPort repository,
                                      GeneradorDocumentoPort generator,
+                                     IdempotenciaPort idempotencia,
+                                     ObjectMapper objectMapper,
                                      long maxFileBytes) {
         this.repository = repository;
         this.generator = generator;
+        this.idempotencia = idempotencia;
+        this.objectMapper = objectMapper;
         this.maxFileBytes = maxFileBytes;
     }
 
@@ -55,14 +66,29 @@ public final class SolicitarDocumentoUseCase {
             throw new ContenidoIAInvalidoException(
                     "interpretacionIA requiere modelo, version y fuentes");
         }
-        String requestHash = hash(request.toString());
-        ResultadoIdempotente previous = idempotency.get(idempotencyKey);
+        String requestHash = canonicalHash(request);
+        idempotencia.purgeExpired();
+        IdempotenciaPort.RegistroIdempotencia previous =
+                idempotencia.reserve(idempotencyKey, requestHash).orElse(null);
         if (previous != null) {
             if (!previous.requestHash().equals(requestHash)) {
                 throw new IllegalStateException(
                         "La clave de idempotencia ya fue usada con otro cuerpo");
             }
-            return previous.response();
+            for (int attempt = 0; attempt < 50; attempt++) {
+                if (previous.response() != null) {
+                    return previous.response();
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrumpido al esperar idempotencia",
+                            exception);
+                }
+                previous = idempotencia.find(idempotencyKey).orElseThrow();
+            }
+            throw new IllegalStateException("La operación idempotente no finalizó a tiempo");
         }
 
         Documento documento = new Documento(
@@ -85,8 +111,7 @@ public final class SolicitarDocumentoUseCase {
         documento.marcarGenerado(content.length, hash(content));
         repository.save(documento);
         DocumentoResponseDTO response = response(documento);
-        idempotency.putIfAbsent(
-                idempotencyKey, new ResultadoIdempotente(requestHash, response));
+        idempotencia.save(idempotencyKey, requestHash, response);
         return response;
     }
 
@@ -103,8 +128,13 @@ public final class SolicitarDocumentoUseCase {
                 documento.creadoEn(), documento.anuladoEn());
     }
 
-    private String hash(Object value) {
-        return hash(value.toString().getBytes(StandardCharsets.UTF_8));
+    private String canonicalHash(Object value) {
+        try {
+            JsonNode tree = canonicalize(objectMapper.valueToTree(value));
+            return hash(objectMapper.writeValueAsBytes(tree));
+        } catch (Exception exception) {
+            throw new IllegalStateException("No se pudo serializar el cuerpo", exception);
+        }
     }
 
     private String hash(byte[] value) {
@@ -116,7 +146,24 @@ public final class SolicitarDocumentoUseCase {
         }
     }
 
-    private record ResultadoIdempotente(
-            String requestHash, DocumentoResponseDTO response) {
+    private JsonNode canonicalize(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode sorted = objectMapper.createObjectNode();
+            Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
+            Map<String, JsonNode> values = new java.util.TreeMap<>();
+            fields.forEachRemaining(field -> values.put(field.getKey(),
+                    canonicalize(field.getValue())));
+            values.forEach(sorted::set);
+            return sorted;
+        }
+        if (node.isArray()) {
+            ArrayNode sorted = objectMapper.createArrayNode();
+            ArrayList<JsonNode> values = new ArrayList<>();
+            node.forEach(value -> values.add(canonicalize(value)));
+            values.sort(Comparator.comparing(JsonNode::toString));
+            values.forEach(sorted::add);
+            return sorted;
+        }
+        return node;
     }
 }

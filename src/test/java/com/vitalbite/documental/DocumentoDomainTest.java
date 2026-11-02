@@ -8,7 +8,6 @@ import com.vitalbite.documental.domain.model.OrigenContenido;
 import com.vitalbite.documental.domain.model.TipoDocumento;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;

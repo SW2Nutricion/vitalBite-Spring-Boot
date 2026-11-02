@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ContenidoIAInvalidoException.class)
     public ProblemDetail handleUnprocessable(ContenidoIAInvalidoException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage());
+                HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
         problem.setTitle("Contenido de IA inválido");
         return problem;
     }
@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ArchivoExcedeLimiteException.class)
     public ProblemDetail handleTooLarge(ArchivoExcedeLimiteException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.PAYLOAD_TOO_LARGE, exception.getMessage());
+                HttpStatus.CONTENT_TOO_LARGE, exception.getMessage());
         problem.setTitle("Archivo demasiado grande");
         return problem;
     }

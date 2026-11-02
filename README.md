@@ -3,9 +3,8 @@
 Microservicio documental de VitalBite. Genera documentos PDF mediante una
 arquitectura hexagonal, separando dominio, aplicación e infraestructura.
 
-La persistencia de metadatos y archivos está deliberadamente pendiente: aún no
-se ha definido qué base de datos utilizar. Por eso el proyecto no incluye
-drivers, configuración ni migraciones de base de datos.
+La persistencia de metadatos usa PostgreSQL con migraciones Flyway. Los archivos
+generados conservan su ruta de almacenamiento y el entorno local incluye MinIO.
 
 ## Requisitos
 
@@ -18,6 +17,16 @@ drivers, configuración ni migraciones de base de datos.
 .\mvnw.cmd clean install
 .\mvnw.cmd spring-boot:run
 ```
+
+Para levantar PostgreSQL, Keycloak, MinIO y la aplicación:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+El realm `vitalbite` se importa automáticamente desde `realm-export.json` con
+los roles, mappers y usuarios de prueba definidos para el entorno local.
 
 El backend se levanta en `http://localhost:8082/api/v1`.
 
@@ -41,8 +50,7 @@ seleccione la tecnología de persistencia.
 
 ## Núcleo documental en avance
 
-Mientras se define la base de datos, el endpoint `POST /api/v1/documentos`
-permite probar el contrato documental usando un repositorio en memoria:
+El endpoint `POST /api/v1/documentos` prueba el contrato documental:
 
 - Requiere `Idempotency-Key`.
 - Valida ACL y estados `PENDIENTE`, `GENERADO`, `FALLIDO` y `ANULADO`.
@@ -52,8 +60,8 @@ permite probar el contrato documental usando un repositorio en memoria:
 - `GET /api/v1/documentos/{id}` devuelve metadatos y `ETag`.
 - `POST /api/v1/documentos/{id}/anular` implementa la compensación idempotente.
 
-La implementación temporal en memoria se reemplazará por los puertos de
-persistencia cuando el equipo seleccione la tecnología de base de datos.
+Con los perfiles `local`, `test` o `production` se usa PostgreSQL; sin perfil
+se conserva un adaptador en memoria para pruebas rápidas.
 
 ## Pruebas
 

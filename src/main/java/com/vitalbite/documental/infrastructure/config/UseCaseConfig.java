@@ -8,6 +8,8 @@ import com.vitalbite.documental.application.usecase.ConsultarDocumentoUseCase;
 import com.vitalbite.documental.application.usecase.SolicitarDocumentoUseCase;
 import com.vitalbite.documental.application.port.out.DocumentoRepositoryPort;
 import com.vitalbite.documental.application.port.out.GeneradorDocumentoPort;
+import com.vitalbite.documental.application.port.out.IdempotenciaPort;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vitalbite.documental.infrastructure.out.pdf.PdfGeneratorAdapter;
 import com.vitalbite.documental.infrastructure.out.generator.SimpleDocumentGeneratorAdapter;
 import org.springframework.context.annotation.Bean;
@@ -41,8 +43,10 @@ public class UseCaseConfig {
     @Bean
     public SolicitarDocumentoUseCase solicitarDocumentoUseCase(
             DocumentoRepositoryPort repository,
-            GeneradorDocumentoPort generator) {
-        return new SolicitarDocumentoUseCase(repository, generator, 10_000_000);
+            GeneradorDocumentoPort generator, IdempotenciaPort idempotencia,
+            ObjectMapper objectMapper) {
+        return new SolicitarDocumentoUseCase(repository, generator, idempotencia,
+                objectMapper, 10_000_000);
     }
 
     @Bean
@@ -53,7 +57,8 @@ public class UseCaseConfig {
 
     @Bean
     public AnularDocumentoUseCase anularDocumentoUseCase(
-            DocumentoRepositoryPort repository) {
-        return new AnularDocumentoUseCase(repository);
+            DocumentoRepositoryPort repository, IdempotenciaPort idempotencia,
+            ObjectMapper objectMapper) {
+        return new AnularDocumentoUseCase(repository, idempotencia, objectMapper);
     }
 }
