@@ -20,10 +20,14 @@ public class DocumentoEntity {
     private String tipo;
     @Column(nullable = false)
     private String estado;
-    @Column(name = "paciente_id", nullable = false)
+    @Column(name = "paciente_id")
     private String pacienteId;
     @Column(name = "propietario_id", nullable = false)
     private String propietarioId;
+    @Column(name = "tenant_id")
+    private String tenantId;
+    @Column(name = "saga_id")
+    private String sagaId;
     @Column(name = "origen_contenido", nullable = false)
     private String origenContenido;
     @Column(nullable = false)
@@ -53,12 +57,13 @@ public class DocumentoEntity {
                            String propietarioId, String origenContenido, String formato,
                            long tamanoBytes, String hashSha256, long version,
                            Instant creadoEn, Instant anuladoEn, String compartidoCon,
-                           String metadatosIA) {
+                           String metadatosIA, String tenantId) {
         this.id = id;
         this.tipo = tipo;
         this.estado = estado;
         this.pacienteId = pacienteId;
         this.propietarioId = propietarioId;
+        this.tenantId = tenantId;
         this.origenContenido = origenContenido;
         this.formato = formato;
         this.tamanoBytes = tamanoBytes;
@@ -75,6 +80,9 @@ public class DocumentoEntity {
     public String getEstado() { return estado; }
     public String getPacienteId() { return pacienteId; }
     public String getPropietarioId() { return propietarioId; }
+    public String getTenantId() { return tenantId; }
+    public String getSagaId() { return sagaId; }
+    public void setSagaId(String sagaId) { this.sagaId = sagaId; }
     public String getOrigenContenido() { return origenContenido; }
     public String getFormato() { return formato; }
     public long getTamanoBytes() { return tamanoBytes; }

@@ -4,5 +4,7 @@ public enum TipoDocumento {
     REPORTE_EVOLUCION,
     REPORTE_CONSULTAS,
     PLAN_NUTRICIONAL,
-    EXPORTACION_CSV
+    EXPORTACION_CSV,
+    DIETA,
+    FACTURA
 }

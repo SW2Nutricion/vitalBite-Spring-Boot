@@ -3,8 +3,8 @@
 Microservicio documental de VitalBite. Genera documentos PDF mediante una
 arquitectura hexagonal, separando dominio, aplicación e infraestructura.
 
-La persistencia de metadatos usa PostgreSQL con migraciones Flyway. Los archivos
-generados conservan su ruta de almacenamiento y el entorno local incluye MinIO.
+La persistencia de metadatos y contenido usa PostgreSQL con migraciones Flyway.
+El contenido se almacena en una tabla separada como `BYTEA`.
 
 ## Requisitos
 
@@ -18,7 +18,7 @@ generados conservan su ruta de almacenamiento y el entorno local incluye MinIO.
 .\mvnw.cmd spring-boot:run
 ```
 
-Para levantar PostgreSQL, Keycloak, MinIO y la aplicación:
+Para levantar PostgreSQL, Keycloak y la aplicación:
 
 ```powershell
 Copy-Item .env.example .env
@@ -29,6 +29,10 @@ El realm `vitalbite` se importa automáticamente desde `realm-export.json` con
 los roles, mappers y usuarios de prueba definidos para el entorno local.
 
 El backend se levanta en `http://localhost:8082/api/v1`.
+
+Los endpoints protegidos requieren un JWT emitido por el IdP configurado en
+`SSO_ISSUER_URI`. El token debe incluir la audiencia `vitalbite-documental`;
+los roles `NUTRICIONISTA` y `PACIENTE` también requieren `tenant_id`.
 
 ## URLs útiles
 
@@ -44,9 +48,9 @@ El backend se levanta en `http://localhost:8082/api/v1`.
 | `POST` | `/api/v1/documents/pdf/diet/preview` | Genera una vista previa de dieta |
 | `POST` | `/api/v1/documents/pdf/invoice` | Genera y devuelve un PDF de factura |
 
-Los PDFs se devuelven directamente en la respuesta y no se almacenan todavía.
-Los endpoints de consulta, descarga y metadatos se implementarán cuando se
-seleccione la tecnología de persistencia.
+Los endpoints `/documents/pdf/*` se conservan de forma compatible. El flujo
+principal `/documentos` almacena el contenido y permite descargarlo desde
+`GET /documentos/{id}/contenido`.
 
 ## Núcleo documental en avance
 
@@ -59,12 +63,24 @@ El endpoint `POST /api/v1/documentos` prueba el contrato documental:
 - Exige metadatos de IA cuando se envía una interpretación.
 - `GET /api/v1/documentos/{id}` devuelve metadatos y `ETag`.
 - `POST /api/v1/documentos/{id}/anular` implementa la compensación idempotente.
+- `GET /api/v1/documentos/{id}/contenido` descarga el contenido verificando
+  SHA-256 y ACL.
+- `GET /api/v1/documentos` lista documentos con filtros y paginación.
 
-Con los perfiles `local`, `test` o `production` se usa PostgreSQL; sin perfil
-se conserva un adaptador en memoria para pruebas rápidas.
+Con los perfiles `local` o `production` se usa PostgreSQL; el perfil `test`
+usa H2 en memoria para no depender de servicios externos. Sin perfil se
+conserva un adaptador en memoria para pruebas rápidas.
 
 ## Pruebas
 
 ```powershell
 .\mvnw.cmd test
 ```
+## Persistencia y auditoría
+
+El servicio persiste documentos, contenido, idempotencia y una bitácora
+append-only en PostgreSQL. `GET /api/v1/auditoria` requiere el rol `ADMIN` y
+acepta filtros `accion`, `resultado`, `sub`, `page` y `size`.
+
+Las operaciones distribuidas aceptan `X-Saga-Id`; la coordinación HTTP y la
+política de reintentos están documentadas en [docs/saga.md](docs/saga.md).

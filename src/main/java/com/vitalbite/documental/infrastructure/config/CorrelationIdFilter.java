@@ -27,11 +27,17 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         }
 
         MDC.put("correlationId", correlationId);
+        String sagaId = request.getHeader("X-Saga-Id");
+        if (sagaId != null && !sagaId.isBlank()) {
+            MDC.put("sagaId", sagaId);
+        }
         response.setHeader(HEADER, correlationId);
         try {
             filterChain.doFilter(request, response);
         } finally {
             MDC.remove("correlationId");
+            MDC.remove("sagaId");
+            MDC.remove("userId");
         }
     }
 }

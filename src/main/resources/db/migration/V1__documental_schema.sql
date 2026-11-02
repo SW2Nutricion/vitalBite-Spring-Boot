@@ -2,7 +2,7 @@ CREATE TABLE documento (
     id UUID PRIMARY KEY,
     tipo VARCHAR(64) NOT NULL,
     estado VARCHAR(32) NOT NULL,
-    paciente_id VARCHAR(255) NOT NULL,
+    paciente_id VARCHAR(255),
     propietario_id VARCHAR(255) NOT NULL,
     origen_contenido VARCHAR(32) NOT NULL,
     formato VARCHAR(64) NOT NULL,

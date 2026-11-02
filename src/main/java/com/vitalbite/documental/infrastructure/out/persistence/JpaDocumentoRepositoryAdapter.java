@@ -51,14 +51,17 @@ public class JpaDocumentoRepositoryAdapter implements DocumentoRepositoryPort {
 
     private DocumentoEntity toEntity(Documento document) {
         try {
-            return new DocumentoEntity(document.id(), document.tipo().name(),
+            DocumentoEntity entity = new DocumentoEntity(document.id(), document.tipo().name(),
                     document.estado().name(), document.pacienteId(),
                     document.acl().propietarioId(), document.origenContenido().name(),
                     document.formato(), document.tamanoBytes(), document.hashSha256(),
                     document.version(), document.creadoEn(), document.anuladoEn(),
                     objectMapper.writeValueAsString(document.acl().compartidoCon()),
                     document.metadatosIA() == null ? null
-                            : objectMapper.writeValueAsString(document.metadatosIA()));
+                            : objectMapper.writeValueAsString(document.metadatosIA()),
+                    document.tenantId());
+            entity.setSagaId(document.sagaId());
+            return entity;
         } catch (Exception exception) {
             throw new IllegalStateException("No se pudo serializar el documento", exception);
         }
@@ -74,7 +77,8 @@ public class JpaDocumentoRepositoryAdapter implements DocumentoRepositoryPort {
                     TipoDocumento.valueOf(entity.getTipo()), entity.getPacienteId(),
                     new AclDocumento(entity.getPropietarioId(), entity.getPacienteId(), shared),
                     OrigenContenido.valueOf(entity.getOrigenContenido()), metadata,
-                    entity.getFormato());
+                    entity.getFormato(), entity.getTenantId());
+            document.asignarSagaId(entity.getSagaId());
             if (entity.getEstado().equals(EstadoDocumento.GENERADO.name())
                     || entity.getEstado().equals(EstadoDocumento.ANULADO.name())) {
                 document.marcarGenerado(entity.getTamanoBytes(), entity.getHashSha256());

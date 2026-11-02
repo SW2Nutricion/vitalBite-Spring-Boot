@@ -10,6 +10,8 @@ public final class Documento {
     private final UUID id;
     private final TipoDocumento tipo;
     private final String pacienteId;
+    private final String tenantId;
+    private String sagaId;
     private final AclDocumento acl;
     private final OrigenContenido origenContenido;
     private final MetadatosIA metadatosIA;
@@ -24,6 +26,12 @@ public final class Documento {
     public Documento(UUID id, TipoDocumento tipo, String pacienteId,
                      AclDocumento acl, OrigenContenido origenContenido,
                      MetadatosIA metadatosIA, String formato) {
+        this(id, tipo, pacienteId, acl, origenContenido, metadatosIA, formato, null);
+    }
+
+    public Documento(UUID id, TipoDocumento tipo, String pacienteId,
+                     AclDocumento acl, OrigenContenido origenContenido,
+                     MetadatosIA metadatosIA, String formato, String tenantId) {
         if (origenContenido != OrigenContenido.REGISTRADO
                 && (metadatosIA == null || !metadatosIA.completos())) {
             throw new IllegalArgumentException(
@@ -32,12 +40,17 @@ public final class Documento {
         this.id = id == null ? UUID.randomUUID() : id;
         this.tipo = tipo;
         this.pacienteId = pacienteId;
+        this.tenantId = tenantId;
         this.acl = acl;
         this.origenContenido = origenContenido;
         this.metadatosIA = metadatosIA;
         this.formato = formato;
         this.estado = EstadoDocumento.PENDIENTE;
         this.creadoEn = Instant.now();
+    }
+
+    public void asignarSagaId(String sagaId) {
+        this.sagaId = sagaId;
     }
 
     public void marcarGenerado(long tamanoBytes, String hashSha256) {
@@ -59,6 +72,14 @@ public final class Documento {
     }
 
     public boolean puedeConsultar(String usuarioId, String rol) {
+        return puedeConsultar(usuarioId, rol, null);
+    }
+
+    public boolean puedeConsultar(String usuarioId, String rol, String usuarioTenantId) {
+        if (tipo == TipoDocumento.FACTURA) {
+            return ("ADMIN".equals(rol) || "NUTRICIONISTA".equals(rol))
+                    && tenantId != null && tenantId.equals(usuarioTenantId);
+        }
         return acl.puedeConsultar(usuarioId, rol);
     }
 
@@ -80,6 +101,8 @@ public final class Documento {
     public UUID id() { return id; }
     public TipoDocumento tipo() { return tipo; }
     public String pacienteId() { return pacienteId; }
+    public String tenantId() { return tenantId; }
+    public String sagaId() { return sagaId; }
     public AclDocumento acl() { return acl; }
     public OrigenContenido origenContenido() { return origenContenido; }
     public MetadatosIA metadatosIA() { return metadatosIA; }

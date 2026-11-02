@@ -1,6 +1,7 @@
 package com.vitalbite.documental.application.dto;
 
 import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 @Data
@@ -8,12 +9,15 @@ public class DietPdfRequestDTO {
 
     // ── Identificadores ─────────────────────────────
     private String id;
+    @NotBlank
     private String tenantId;
+    @NotBlank
     private String patientId;
     private String nutritionistId;
 
     // ── Datos de la dieta ───────────────────────────
     private String name;
+    @NotBlank
     private String objective;
     private String phase;
     private String approach;

@@ -18,5 +18,6 @@ public record DocumentoResponseDTO(
         String hashSha256,
         long version,
         Instant creadoEn,
-        Instant anuladoEn) {
+        Instant anuladoEn,
+        String tenantId) {
 }

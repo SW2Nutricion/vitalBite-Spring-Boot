@@ -16,8 +16,11 @@ public record AclDocumento(
             return true;
         }
         if ("PACIENTE".equals(rol)) {
-            return pacienteId.equals(usuarioId);
+            return pacienteId != null && pacienteId.equals(usuarioId);
         }
-        return propietarioId.equals(usuarioId) || compartidoCon.contains(usuarioId);
+        if ("NUTRICIONISTA".equals(rol)) {
+            return propietarioId.equals(usuarioId) || compartidoCon.contains(usuarioId);
+        }
+        return "SERVICE".equals(rol);
     }
 }

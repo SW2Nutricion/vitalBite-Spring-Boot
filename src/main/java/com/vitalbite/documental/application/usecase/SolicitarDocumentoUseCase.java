@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vitalbite.documental.application.port.out.IdempotenciaPort;
+import com.vitalbite.documental.application.port.out.AlmacenArchivoPort;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -28,31 +29,57 @@ public final class SolicitarDocumentoUseCase {
     private final DocumentoRepositoryPort repository;
     private final GeneradorDocumentoPort generator;
     private final IdempotenciaPort idempotencia;
+    private final AlmacenArchivoPort almacen;
     private final ObjectMapper objectMapper;
     private final long maxFileBytes;
 
     public SolicitarDocumentoUseCase(DocumentoRepositoryPort repository,
                                      GeneradorDocumentoPort generator,
                                      IdempotenciaPort idempotencia,
+                                     AlmacenArchivoPort almacen,
                                      ObjectMapper objectMapper,
                                      long maxFileBytes) {
         this.repository = repository;
         this.generator = generator;
         this.idempotencia = idempotencia;
+        this.almacen = almacen;
         this.objectMapper = objectMapper;
         this.maxFileBytes = maxFileBytes;
     }
 
     public DocumentoResponseDTO execute(
             SolicitudDocumentoDTO request, String idempotencyKey) {
+        return execute(request, idempotencyKey, null);
+    }
+
+    public DocumentoResponseDTO execute(
+            SolicitudDocumentoDTO request, String idempotencyKey, String sagaId) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new IllegalArgumentException("Idempotency-Key es obligatorio");
         }
         if (request == null || request.tipo() == null
-                || request.pacienteId() == null || request.propietarioId() == null
+                || request.propietarioId() == null
                 || request.datos() == null || request.formato() == null) {
             throw new IllegalArgumentException(
                     "tipo, pacienteId, propietarioId, datos y formato son obligatorios");
+        }
+        if (request.pacienteId() == null && request.tipo() != com.vitalbite.documental.domain.model.TipoDocumento.FACTURA) {
+            throw new IllegalArgumentException("pacienteId es obligatorio para este tipo de documento");
+        }
+        if (request.tipo() == com.vitalbite.documental.domain.model.TipoDocumento.FACTURA
+                && request.tenantId() == null) {
+            throw new IllegalArgumentException("tenantId es obligatorio para una factura");
+        }
+        if (request.origenContenido() != com.vitalbite.documental.domain.model.OrigenContenido.REGISTRADO
+                && (request.metadatosIA() == null
+                || request.metadatosIA().modelo() == null
+                || request.metadatosIA().modelo().isBlank()
+                || request.metadatosIA().version() == null
+                || request.metadatosIA().version().isBlank()
+                || request.metadatosIA().fuentes() == null
+                || request.metadatosIA().fuentes().isEmpty())) {
+            throw new ContenidoIAInvalidoException(
+                    "contenido generado o mixto requiere modelo, version y fuentes");
         }
         if (request.interpretacionIA() != null
                 && !request.interpretacionIA().isBlank()
@@ -101,15 +128,25 @@ public final class SolicitarDocumentoUseCase {
                         request.compartidoCon()),
                 request.origenContenido(),
                 toDomain(request.metadatosIA()),
-                request.formato());
+                request.formato(), request.tenantId());
+        documento.asignarSagaId(sagaId);
         byte[] content = generator.generar(request);
         if (content.length > maxFileBytes) {
             documento.marcarFallido();
             throw new ArchivoExcedeLimiteException(
                     "El archivo excede el tamaño máximo permitido");
         }
-        documento.marcarGenerado(content.length, hash(content));
         repository.save(documento);
+        try {
+            almacen.guardar(documento.id(), content);
+            documento.marcarGenerado(content.length, hash(content));
+            repository.save(documento);
+        } catch (RuntimeException exception) {
+            documento.marcarFallido();
+            repository.save(documento);
+            throw new IllegalStateException("No se pudo almacenar el contenido del documento",
+                    exception);
+        }
         DocumentoResponseDTO response = response(documento);
         idempotencia.save(idempotencyKey, requestHash, response);
         return response;
@@ -125,7 +162,7 @@ public final class SolicitarDocumentoUseCase {
                 documento.pacienteId(), documento.origenContenido(),
                 documento.formato(), documento.tamanoBytes(),
                 documento.hashSha256(), documento.version(),
-                documento.creadoEn(), documento.anuladoEn());
+                documento.creadoEn(), documento.anuladoEn(), documento.tenantId());
     }
 
     private String canonicalHash(Object value) {

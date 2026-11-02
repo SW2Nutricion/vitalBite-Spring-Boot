@@ -355,16 +355,18 @@ public class PdfGeneratorAdapter implements PdfGeneratorPort {
                 .setTextAlignment(TextAlignment.RIGHT)
                 .setMarginBottom(40));
 
-        // Footer / Blockchain Hash
-        document.add(new Paragraph("Registro de Auditoría Blockchain")
-                .setFontSize(10)
-                .setBold()
-                .setFontColor(COLOR_PRIMARY)
-                .setMarginBottom(5));
-        
-        document.add(new Paragraph("ID Transacción (Hash): " + safe(request.getTransactionHash()))
-                .setFontSize(8)
-                .setFontColor(COLOR_GRAY));
+        if (request.getTransactionHash() != null
+                && !request.getTransactionHash().isBlank()) {
+            document.add(new Paragraph("Registro de Auditoría Blockchain")
+                    .setFontSize(10)
+                    .setBold()
+                    .setFontColor(COLOR_PRIMARY)
+                    .setMarginBottom(5));
+            document.add(new Paragraph("ID Transacción (Hash): "
+                            + request.getTransactionHash())
+                    .setFontSize(8)
+                    .setFontColor(COLOR_GRAY));
+        }
 
         document.close();
         return outputStream.toByteArray();

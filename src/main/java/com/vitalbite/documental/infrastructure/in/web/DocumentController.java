@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/documents/pdf")
@@ -26,23 +27,26 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/diet", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Deprecated
     @Operation(summary = "Generar PDF de dieta")
     public ResponseEntity<byte[]> generateDietPdf(
-            @RequestBody DietPdfRequestDTO request) {
+            @Valid @RequestBody DietPdfRequestDTO request) {
         return pdfResponse("dieta.pdf", generateDietPdf.execute(request));
     }
 
     @PostMapping(value = "/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Deprecated
     @Operation(summary = "Generar PDF de factura")
     public ResponseEntity<byte[]> generateInvoicePdf(
-            @RequestBody InvoicePdfRequestDTO request) {
+            @Valid @RequestBody InvoicePdfRequestDTO request) {
         return pdfResponse("factura.pdf", generateInvoicePdf.execute(request));
     }
 
     @PostMapping(value = "/diet/preview", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Deprecated
     @Operation(summary = "Vista previa del PDF de dieta")
     public ResponseEntity<byte[]> previewDietPdf(
-            @RequestBody DietPdfRequestDTO request) {
+            @Valid @RequestBody DietPdfRequestDTO request) {
         return pdfResponse("preview-dieta.pdf", generateDietPdf.execute(request));
     }
 
